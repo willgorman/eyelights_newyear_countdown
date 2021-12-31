@@ -3,22 +3,7 @@
 # SPDX-License-Identifier: MIT
 
 """
-EyeLightsAnim example for Adafruit EyeLights (LED Glasses + Driver).
-The accompanying eyelights_anim.py provides pre-drawn frame-by-frame
-animation from BMP images. Sort of a catch-all for modest projects that may
-want to implement some animation without having to express that animation
-entirely in code. The idea is based upon two prior projects:
-
-https://learn.adafruit.com/32x32-square-pixel-display/overview
-learn.adafruit.com/circuit-playground-neoanim-using-bitmaps-to-animate-neopixels
-
-The 18x5 matrix and the LED rings are regarded as distinct things, fed from
-two separate BMPs (or can use just one or the other). The former guide above
-uses the vertical axis for time (like a strip of movie film), while the
-latter uses the horizontal axis for time (as in audio or video editing).
-Despite this contrast, the same conventions are maintained here to avoid
-conflicting explanations...what worked in those guides is what works here,
-only the resolutions are different. See also the example BMPs.
+New Year countdown for Adafruit EyeLights (LED Glasses + Driver).
 """
 
 import time
@@ -158,12 +143,25 @@ def digit(n):
 
 def digits(n):
     return [n // 10 % 10, n % 10]
+    
+def digits_full(n):
+    return [n // 100000 % 10, n // 10000 % 10, n // 1000 % 10, n // 100 % 10, n // 10 % 10, n % 10]
 
 def display(num, offset):
     for y in range(5):
         for x in range(3):
             glasses.pixel(x+offset, y, num[y][x]*100)
 
+def display_digits_full(ds):
+    ring_val = ds[0]*10 + ds[1]
+    if ring_val > 0:
+        for r in range(6, ring_val+6):
+            glasses.left_ring[r] = gammify((75, 75, 75))
+    display(digit(ds[2]), 1)
+    display(digit(ds[3]), 4)
+    display(digit(ds[4]), 11)
+    display(digit(ds[5]), 14)
+    
 def display_digits(ds):
     display_left(ds)
     display_right(ds)
@@ -179,38 +177,38 @@ def display_right(ds):
         display(digit(d), offset)
         offset = offset + 3
 
-# ANIMATION SETUP ----------------------
-
-# Two indexed-color BMP filenames are specified: first is for the LED matrix
-# portion, second is for the LED rings -- or pass None for one or the other
-# if not animating that part. The two elements, matrix and rings, share a
-# few LEDs in common...by default the rings appear "on top" of the matrix,
-# or you can optionally pass a third argument of False to have the rings
-# underneath. There's that one odd unaligned pixel between the two though,
-# so this may only rarely be desirable.
-anim = EyeLightsAnim(glasses, "matrix.bmp", "rings.bmp")
-
-
 # MAIN LOOP ----------------------------
 
-# This example just runs through a repeating cycle. If you need something
-# else, like ping-pong animation, or frames based on a specific time, the
-# anim.frame() function can optionally accept two arguments: an index for
-# the matrix animation, and an index for the rings.
+
 count = 60
 start_time = 0
 end_time = 0
-started = False
+clock_adjustment = 0
 done = False
+NEW_YEAR = time.mktime(time.struct_time((2022, 1, 1, 0, 0, 0, 5, 1, 0)))
+# test with a different time
+NEW_YEAR = time.mktime(time.struct_time((2021, 12, 30, 22, 21, 0, 3, 1, 0)))
 while True:
+    # wait for a connection to sync the time
     if radio.connected:
         for connection in radio.connections:
             if not connection.paired:
                 connection.pair()
                 print("paired")
             cts = connection[CurrentTimeService]
-            print(cts.current_time)
-        time.sleep(1)
+            clock_adjustment = time.mktime(cts.current_time) - time.time()
+            print("seconds until new year")
+            print(NEW_YEAR - (time.time() + clock_adjustment))
+            connection.disconnect()
+        end_time = NEW_YEAR
+        break
+    # allow a button press to bypass time sync and just start a fixed countdown
+    if not button.value:
+        start_time = time.time()
+        end_time = start_time + 10
+        break 
+        
+while True:
     if done:
         glasses.left_ring.fill(ring_color)
         glasses.right_ring.fill(ring_color)
@@ -218,17 +216,16 @@ while True:
         display_right(digits(22))
         glasses.show()
         continue
-    if end_time == time.time():
+    if end_time == (time.time() + clock_adjustment):
         done = True
-    if not button.value:
-        started = True
-        start_time = time.time()
-        end_time = start_time + 10
-    if not started:
-        continue
-    count = end_time - time.time()
-    #anim.frame()  #     Advance matrix and rings by 1 frame and wrap around
-    #    display(digit(count%10), 1)
-    display_digits(digits(count%60))
+
+    count = end_time - (time.time() + clock_adjustment)
+
+    # TODO: switch colors and double display once value is below 60
+    #display_digits(digits(count%60))
+    if count < 60:
+        display_digits(digits(count))
+    else:
+        display_digits_full(digits_full(count))
     glasses.show()  #   Update LED matrix
     time.sleep(0.2)
