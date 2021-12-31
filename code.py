@@ -187,7 +187,7 @@ clock_adjustment = 0
 done = False
 NEW_YEAR = time.mktime(time.struct_time((2022, 1, 1, 0, 0, 0, 5, 1, 0)))
 # test with a different time
-NEW_YEAR = time.mktime(time.struct_time((2021, 12, 30, 22, 21, 0, 3, 1, 0)))
+# NEW_YEAR = time.mktime(time.struct_time((2021, 12, 30, 22, 21, 0, 3, 1, 0)))
 while True:
     # wait for a connection to sync the time
     if radio.connected:

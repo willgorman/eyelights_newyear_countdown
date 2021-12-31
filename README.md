@@ -1,6 +1,6 @@
 # EyeLights New Year's Eve Countdown
 
-Display a countdown to the new year on AdaFruit EyeLights LED Glasses.
+Display a countdown to the new year on [AdaFruit EyeLights LED Glasses](https://learn.adafruit.com/adafruit-eyelights-led-glasses-and-driver).
 
 There are two different countdown modes:
 
