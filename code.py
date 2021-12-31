@@ -154,6 +154,7 @@ def display(num, offset):
 
 def display_digits_full(ds):
     ring_val = ds[0]*10 + ds[1]
+    glasses.left_ring.fill(0)
     if ring_val > 0:
         for r in range(6, ring_val+6):
             glasses.left_ring[r] = gammify((75, 75, 75))
